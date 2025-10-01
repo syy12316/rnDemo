@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import '../lib/polyfill';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import '../global.css';

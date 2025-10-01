@@ -36,13 +36,13 @@ export default function HomeScreen(){
       </View>
       {/* 收入支出总额 */}
       <View className='flex flex-row gap-4'>
-        <View className='flex-1 bg-green-50 p-4 rounded-lg'>
+        <View className='flex-1 bg-green-50 p-4 rounded-lg shadow-sm'>
           <View className='flex flex-row justify-between items-center'>
             <Text className='font-bold'>收入</Text>
             <Text className='text-green-500'>100</Text>
           </View>
         </View>
-        <View className='flex-1 bg-red-50 p-4 rounded-lg'>
+        <View className='flex-1 bg-red-50 p-4 rounded-lg shadow-sm'>
           <View className='flex flex-row justify-between items-center'>
             <Text className='font-bold'>支出</Text>
             <Text className='text-red-500'>100</Text>
