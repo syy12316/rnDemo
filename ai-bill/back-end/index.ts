@@ -1,31 +1,33 @@
-import cors = require('cors');
 import express = require('express');
+import cors = require('cors');
 import dotenv = require('dotenv');
 import { chatRoutes } from './src/chatRoute';
 
 dotenv.config();
 
 const app = express();
-// 修复：将端口转换为数字类型
 const port = parseInt(process.env.PORT || '8000', 10);
 
-// 解决跨域问题
+// 中间件 - 分开配置以确保CORS正确工作
 app.use(cors({
-  origin: '*', // 允许所有来源
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
-// 解析请求体为json格式
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.use('/api/chat', chatRoutes);
+// 路由
 app.use('/chat', chatRoutes);
+app.get('/', (req, res) => res.json({ message: '服务器运行正常' }));
 
-// 修复：现在 port 是数字类型，不会出现类型错误
+// 错误处理
+app.use((req, res) => res.status(404).json({ error: '路由不存在' }));
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('服务器错误:', err);
+  res.status(500).json({ error: '服务器内部错误' });
+});
+
 app.listen(port, '0.0.0.0', () => {
-  console.log(`🚀 服务器运行在 http://0.0.0.0:${port}`);
-  console.log(`💻 本地访问: http://localhost:${port}`);
-  console.log(`📱 移动端访问: http://192.168.10.36:${port}`);
-  console.log(`🔧 健康检查: http://192.168.10.36:${port}/api/chat/health`);
+  console.log(`服务器运行中: http://192.168.10.36:${port}`);
 });

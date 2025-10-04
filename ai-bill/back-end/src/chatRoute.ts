@@ -2,7 +2,7 @@ import { createDeepSeek } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
-
+import { createRecord } from './index';
 dotenv.config();
 
 export const chatRoutes = express.Router();
@@ -12,64 +12,90 @@ const deepSeek = createDeepSeek({
   baseURL: 'https://api.deepseek.com', 
 });
 
-chatRoutes.post('/simple', async (req: Request, res: Response) => {
-  try {
-    console.log('📨 收到聊天请求:', req.body);
-    
-    // 检查 API Key
-    if (!process.env.DEEPSEEK_API_KEY) {
-      console.error('❌ API Key 未设置');
-      return res.status(401).json({ 
-        success: false,
-        error: '请设置有效的 DeepSeek API Key'
-      });
-    }
+const today = new Date().toISOString().split('T')[0];
 
-    const { messages } = req.body;
-    
-    let userMessage = 'Hello.';
-    
-    // 处理消息格式
-    if (messages && Array.isArray(messages) && messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      userMessage = lastMessage.content || 'Hello.';
-    }
+const prompt = `你是一个财务分析助手。请严格遵循以下规则：
 
-    console.log('💬 用户消息:', userMessage);
-    
+当用户输入包含消费或支出记录时，你必须返回一个 JSON 对象，格式如下：
+{
+  "amount": 数字,
+  "title": "字符串",
+  "date": "YYYY-MM-DD"
+}
+
+规则：
+1. 消费金额为负数，收入金额为正数
+2. title 字段：消费时填写商品/服务名称，收入时填写来源，无法确定时填"others"
+3. date 字段：如果能从输入中分析出日期，使用该日期，否则使用今天日期：${today}
+4. 如果输入不是财务记录，返回普通文本回复
+
+重要：如果是财务记录，只返回 JSON 对象，不要添加任何额外文本！
+
+示例：
+用户输入："今天吃饭花了50元"
+正确响应：{"amount": -50, "title": "餐饮", "date": "${today}"}
+
+用户输入："I spend 500 on cars"
+正确响应：{"amount": -500, "title": "汽车", "date": "${today}"}
+
+用户输入："你好"
+正确响应："你好！有什么可以帮助你的吗？"`;
+
+chatRoutes.post('/', async (req: Request, res: Response) => {
+  const {messages,user_id:userId} = req.body;
+
+  let resJson = {
+    text:'',
+    records:null,
+  }
+
+  try {  
     // 调用 AI API
-    const result = await generateText({
+    const {text} = await generateText({
       model: deepSeek('deepseek-chat'),
-      prompt: userMessage,
+      system: prompt,
+      messages: messages,
     });
 
-    console.log('🤖 AI 响应:', result.text);
+    const record = parseText(text);
+    if(record){
+      // 记录到数据库
+      await createRecord(userId,record.amount,record.title,record.date);
+      resJson.records = record;
+    }else{
+      resJson.text = text;
+    }
     
     // 返回响应格式
-    res.json({
+    res.status(200).json({
       id: Date.now().toString(),
-      content: result.text,
       role: 'assistant',
-      createdAt: new Date().toISOString(),
+      content: resJson.records ? JSON.stringify(resJson.records) : resJson.text,
     });
     
   } catch (error: any) {
     console.error('❌ API 调用错误:', error);
     
     res.status(500).json({
-      success: false,
-      error: 'API 调用失败: ' + (error?.message || '未知错误')
+      text:'服务器错误',
+      records:null,
     });
+    return;
   }
 });
 
-// 健康检查路由
-chatRoutes.get('/health', (req: Request, res: Response) => {
-  console.log('🔧 健康检查请求');
-  res.json({ 
-    status: 'ok',
-    message: '聊天服务正常运行',
-    timestamp: new Date().toISOString(),
-    apiKey: process.env.DEEPSEEK_API_KEY ? '已设置' : '未设置'
-  });
-});
+const parseText = (result: string) => {
+  try {
+    //清理可能存在的markdown
+    const cleanResult = result.replace(/```json\n/,'').replace(/\n```/,'').trim();
+    const parsedResult = JSON.parse(cleanResult);
+    if(parsedResult.amount && parsedResult.title && parsedResult.date){
+      return parsedResult;
+    }else{
+      return null;
+    }
+  } catch (error) {
+    console.log('❌ 解析JSON错误:', error);
+    return null;
+  }
+}
