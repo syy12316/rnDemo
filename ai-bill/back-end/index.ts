@@ -2,6 +2,7 @@ import express = require('express');
 import cors = require('cors');
 import dotenv = require('dotenv');
 import { chatRoutes } from './src/chatRoute';
+import { recordRoute } from './src/recordRoute';
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // 路由
 app.use('/chat', chatRoutes);
+app.use('/record', recordRoute);
 app.get('/', (req, res) => res.json({ message: '服务器运行正常' }));
 
 // 错误处理

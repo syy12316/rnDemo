@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { View, TextInput, ScrollView, Text, Button } from 'react-native';
 import { useAuth } from '../_layout'
 import RecordCard from '@/components/RecordCard';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRecord } from './index';
 
 interface Message {
   id: string;
@@ -12,10 +14,17 @@ interface Message {
 export default function App() {
   const session = useAuth((state:any) => state.session);
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
-
+  const fetchRecords = useRecord((state:any) => state.fetchRecords);
+  
+  const [messages, setMessages] = useState<Message[]>([{
+  id: '1',
+  role: 'assistant',
+  content: '你好,我是你的AI助手,我可以帮助你记录你的收入和支出.',
+}]);
+  
   const sendMessage = async () => {
     if (!input.trim()) return;
+    setInput('');
 
     // 添加用户消息
     const userMessage: Message = {
@@ -30,6 +39,7 @@ export default function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,  
         },
         body: JSON.stringify({
           messages: [{ role: 'user', content: input }],
@@ -40,7 +50,7 @@ export default function App() {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+      
       const data = await response.json();
 
       // 添加AI回复
@@ -50,53 +60,52 @@ export default function App() {
         content: data.content,
       };
       setMessages(prev => [...prev, aiMessage]);
-
+      fetchRecords(new Date(), session);
     } catch (error) {
       console.error('发送消息错误:', error);
     }
-
-    setInput('');
   };
 
   return (
-    <View style={{ flex: 1, padding: 16 }}>
-      <ScrollView style={{ flex: 1 }}>
-        {messages.map(m => (
-          <View key={m.id} style={{ marginVertical: 8 }}>
-            <Text style={{ fontWeight: 'bold' }}>
-              {m.role === 'user' ? '你' : 'AI'}:
-            </Text>
-            {/* 修复条件渲染 */}
-          {(() => {
-            try {
-              const parsed = JSON.parse(m.content);
-              if (typeof parsed === 'object' && parsed !== null) {
-                return <RecordCard record={parsed} />;
-              }
-            } catch (error) {
-              console.error('解析JSON错误:', error);
-              return <Text>{m.content}</Text>;
-            }    
-          })()}
-          </View>
-        ))}
-      </ScrollView>
+    <SafeAreaView className='flex-1 flex'>
+      <View style={{ flex: 1, padding: 16 }}>
+        <ScrollView style={{ flex: 1 }}>
+          {messages.map(m => (
+            <View key={m.id} style={{ marginVertical: 8 }}>
+              <Text className={`font-bold ${m.role === 'user' ? 'text-right text-blue-500' : 'text-green-500'}`}>
+                {m.role === 'user' ? '你' : 'AI'}
+              </Text>
+              {/* 修复条件渲染 */}
+            {(() => {
+              try {
+                const parsed = JSON.parse(m.content);
+                if (typeof parsed === 'object' && parsed !== null) {
+                  return <RecordCard record={parsed} />;
+                }
+              } catch (error) {
+                return <Text className={`${m.role === 'user' ? 'text-right' : 'text-left'}`}>{m.content}</Text>;
+              }    
+            })()}
+            </View>
+          ))}
+        </ScrollView>
 
-      <View style={{ flexDirection: 'row', marginTop: 16 }}>
-        <TextInput
-          style={{ 
-            flex: 1, 
-            borderWidth: 1, 
-            borderColor: '#ccc', 
-            padding: 8,
-            marginRight: 8
-          }}
-          placeholder="输入消费记录..."
-          value={input}
-          onChangeText={setInput}
-        />
-        <Button title="发送" onPress={sendMessage} />
+        <View style={{ flexDirection: 'row', marginTop: 16 }}>
+          <TextInput
+            style={{ 
+              flex: 1, 
+              borderWidth: 1, 
+              borderColor: '#ccc', 
+              padding: 8,
+              marginRight: 8
+            }}
+            placeholder="输入消费记录..."
+            value={input}
+            onChangeText={setInput}
+          />
+          <Button title="发送" onPress={sendMessage} />
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

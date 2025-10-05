@@ -3,6 +3,7 @@ import { generateText } from 'ai';
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import { createRecord } from './index';
+import { authMiddleware } from './auth.middleware';
 dotenv.config();
 
 export const chatRoutes = express.Router();
@@ -41,7 +42,7 @@ const prompt = `你是一个财务分析助手。请严格遵循以下规则：
 用户输入："你好"
 正确响应："你好！有什么可以帮助你的吗？"`;
 
-chatRoutes.post('/', async (req: Request, res: Response) => {
+chatRoutes.post('/', authMiddleware, async (req: Request, res: Response) => {
   const {messages,user_id:userId} = req.body;
 
   let resJson = {

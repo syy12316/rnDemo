@@ -50,3 +50,47 @@ export const getRecords = async(userId:string,date:Date) => {
     return;
   }
 }
+
+//删除数据的api - 修改为根据ID删除
+export const deleteRecord = async (id:number,user_id:string) => {
+  try{
+    const result = await db.delete(recordTable)
+      .where(
+        and(
+          eq(recordTable.id, id),
+          eq(recordTable.userId, user_id)
+        )
+      );
+    return result;
+  }catch(error){
+    console.log(error);
+    return ;
+  }
+}
+// export const deleteRecord = async(id: number, userId: string) => {
+//   try{
+//     // 先验证记录是否存在且属于该用户
+//     const record = await db.select()
+//       .from(recordTable)
+//       .where(
+//         and(
+//           eq(recordTable.id, id),
+//           eq(recordTable.userId, userId)
+//         )
+//       )
+//       .limit(1);
+
+//     if (record.length === 0) {
+//       return false; // 记录不存在或无权删除
+//     }
+
+//     // 删除记录
+//     const result = await db.delete(recordTable)
+//       .where(eq(recordTable.id, id));
+    
+//     return result;
+//   }catch(error){
+//     console.log(error);
+//     return false;
+//   }
+// }

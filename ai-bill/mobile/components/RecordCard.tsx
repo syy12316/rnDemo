@@ -10,7 +10,7 @@ type Record = {
 
 const RecordCard = ({record}:{record:Record}) => {
   return (
-    <View className='mt-3 bg-white p-4 rounded-lg shadow-sm'>
+    <View className='mt-3 bg-white p-4 rounded-lg shadow-sm flex-1'>
       <View className='flex flex-row justify-between items-center'>
         <Text className='text-lg font-semibold'>{record.title}</Text>
         <Text className={`font-bold ${record.amount > 0 ? 'text-green-500':'text-red-500'}`} >{record.amount}</Text>
