@@ -6,7 +6,7 @@ dotenv.config();
 
 export const authMiddleware = async (req:Request,res:Response,next:NextFunction)=>{
   const token = req.header('Authorization')?.replace('Bearer ','');
-  console.log('token',token);
+  //console.log('token',token);
   const {user_id:userId} = req.body;
   if(!token){
     res.status(401).json({error:'未登录'});
